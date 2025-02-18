@@ -1,0 +1,11 @@
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# Colcon metadata
+.colcon/
+
+# Python cache files
+*.pyc
+__pycache__/
