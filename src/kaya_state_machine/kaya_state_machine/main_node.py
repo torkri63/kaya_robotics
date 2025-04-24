@@ -10,7 +10,7 @@ class StateMachine:
     def __init__(self, node):
         self.node = node
         self.state = IdleState(self)  # Start in Idle
-        self.state.on_enter()  # 👈 Call it right after creating the first state
+        self.state.on_enter()  
 
 
     def transition_to(self, new_state_class):
