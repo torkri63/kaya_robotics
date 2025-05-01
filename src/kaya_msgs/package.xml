@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>kaya_msgs</name>
+  <version>0.0.0</version>
+  <description>Messaging interfaces for KAYA robot</description>
+  <maintainer email="maggikrisse@gmail.com">tmkristi</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Build tools for generating interfaces -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <!-- Runtime dependencies for generated code -->
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+
+  <!-- Group this package as an interface package -->
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

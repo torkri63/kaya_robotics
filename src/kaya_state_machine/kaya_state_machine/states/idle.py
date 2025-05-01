@@ -1,22 +1,22 @@
+# src/kaya_state_machine/kaya_state_machine/states/idle.py
+
+from std_msgs.msg import String
+
 class IdleState:
     def __init__(self, machine):
-        self.machine = machine
-        self.node = machine.node
+        self.node = machine
+        # subscribe to start_button topic
+        self.start_sub = self.node.create_subscription(
+            String, 'start_button', self.start_callback, 10)
 
     def on_enter(self):
-        self.node.get_logger().info("Entered IDLE state")
-        self.node.get_logger().info("Press ENTER to start scanning...")
+        self.node.get_logger().info('IDLE: waiting for start_button (publish "PRESSED")')
 
-    def on_update(self):
-        import sys
-        import select
-
-        if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-            line = sys.stdin.readline()
-            if line.strip() == "":
-                self.node.get_logger().info("ENTER pressed. Switching to SCANNING.")
-                from kaya_state_machine.states.scanning import ScanningState
-                self.machine.transition_to(ScanningState)
+    def start_callback(self, msg: String):
+        if msg.data == 'PRESSED' and self.node.current_state_name == 'IDLE':
+            self.node.get_logger().info('start_button PRESSED, transitioning to SCANNING')
+            self.node.transition_to('SCANNING')
 
     def on_exit(self):
-        self.node.get_logger().info("Exiting IDLE state")
+        # clean up or leave subscriber active for next time
+        pass
