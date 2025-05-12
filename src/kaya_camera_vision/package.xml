@@ -4,11 +4,13 @@
   <name>kaya_camera_vision</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="tmkristi@todo.todo">tmkristi</maintainer>
+  <maintainer email="elisha@todo.todo">elisha</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>cv_bridge</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
