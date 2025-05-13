@@ -5,6 +5,7 @@ from rclpy.node import Node
 
 from geometry_msgs.msg import Point, Pose
 from std_msgs.msg import Float32
+from kaya_msgs.msg import CubeInfo  # Import CubeInfo message
 
 from tf2_ros import Buffer, TransformListener, LookupException, ExtrapolationException, TransformException
 from tf2_geometry_msgs import PointStamped, do_transform_point
@@ -18,6 +19,8 @@ class MotionPlanningSubscriber(Node):
     Subscribes to /cube/position (or user-defined topic), transforms the position
     to the robot base frame (using tf2), calculates distance to the origin,
     and republishes both position and distance.
+
+    Additionally, publishes CubeInfo messages for state machine transitions.
 
     Attributes:
         tf_buffer (Buffer): Buffer for storing transforms.
@@ -50,6 +53,7 @@ class MotionPlanningSubscriber(Node):
         self.subscription = self.create_subscription(Point, self.input_topic, self.position_callback, 10)
         self.publisher_pos = self.create_publisher(Pose, self.output_position_topic, 10)
         self.publisher_dist = self.create_publisher(Float32, self.output_distance_topic, 10)
+        self.publisher_cube_info = self.create_publisher(CubeInfo, '/cube_info', 10)  # ✅ Publisher for CubeInfo
 
         self.get_logger().info(f"MotionPlanningSubscriber started. Listening on {self.input_topic}.")
 
@@ -103,10 +107,19 @@ class MotionPlanningSubscriber(Node):
         self.publisher_pos.publish(pose_msg)
         self.publisher_dist.publish(Float32(data=float(distance)))
 
+        #  Create and publish CubeInfo message
+        cube_info_msg = CubeInfo()
+        cube_info_msg.header.stamp = self.get_clock().now().to_msg()
+        cube_info_msg.header.frame_id = self.target_frame
+        cube_info_msg.point = transformed_point
+        cube_info_msg.detected = True  # Mark as detected for state machine
+
+        self.publisher_cube_info.publish(cube_info_msg)
+
         # Log results
         self.get_logger().info(
             f"Transformed position: ({transformed_point.x:.3f}, {transformed_point.y:.3f}, {transformed_point.z:.3f}) "
-            f"in '{self.target_frame}'; Distance={distance:.3f} m"
+            f"in '{self.target_frame}'; Distance={distance:.3f} m; Published CubeInfo with detected=True"
         )
 
 
@@ -125,4 +138,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
