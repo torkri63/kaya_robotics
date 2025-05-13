@@ -1,35 +1,44 @@
-import time
+# src/kaya_state_machine/kaya_state_machine/states/planning.py
+
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 
 class PlanningState:
     def __init__(self, machine):
-        self.machine = machine
-        self.node = machine.node
-        self.start_time = time.time()
-        self.mock_cube_visible = True
-        self.mock_vector_to_cube = [1.0, 0.5]  # Placeholder
-        self.mock_endpoint = [2.0, 0.0]
-        self.planned = False
+        self.node = machine
+        self.path_sub = None
+
+        # Create a state-local publisher for sending the goal to the planner
+        self.goal_pub = self.node.create_publisher(
+            PoseStamped, 'goal_position', 10)
 
     def on_enter(self):
-        self.node.get_logger().info("Entered PLANNING state")
-        self.node.get_logger().info("Waiting for vector info from camera...")
+        self.node.get_logger().info('PLANNING: publishing goal_position to planner')
+        # Publish the stored goal_pose from the SCANNING state
+        goal = self.node.goal_pose
+        self.goal_pub.publish(goal)
 
-    def on_update(self):
-        current_time = time.time()
+        # Now subscribe to the real planner’s output
+        self.node.get_logger().info('PLANNING: subscribing to /planned_path')
+        self.path_sub = self.node.create_subscription(
+            Path,
+            'planned_path',
+            self.path_callback,
+            10
+        )
 
-        # Simulate receiving message from camera after 3 seconds
-        if not self.planned and current_time - self.start_time > 3.0:
-            if self.mock_cube_visible:
-                self.node.get_logger().info(f"Cube visible. Vector: {self.mock_vector_to_cube}")
-                self.node.get_logger().info(f"Calculating trajectory to endpoint {self.mock_endpoint}")
-                self.node.get_logger().info("Trajectory planning successful. Switching to EXECUTION.")
-                self.planned = True
-                from kaya_state_machine.states.execution import ExecutionState
-                self.machine.transition_to(ExecutionState)
-            else:
-                self.node.get_logger().info("Cube lost. Returning to SCANNING.")
-                from kaya_state_machine.states.scanning import ScanningState
-                self.machine.transition_to(ScanningState)
+    def path_callback(self, msg: Path):
+        self.node.get_logger().info(
+            f'Path received ({len(msg.poses)} poses), transitioning to EXECUTION'
+        )
+        # Clean up the subscription
+        self.node.destroy_subscription(self.path_sub)
+        self.path_sub = None
+        # Transition into EXECUTION
+        self.node.transition_to('EXECUTION')
 
     def on_exit(self):
-        self.node.get_logger().info("Exiting PLANNING state")
+        # Ensure any lingering subscription is removed
+        if self.path_sub:
+            self.node.destroy_subscription(self.path_sub)
+            self.path_sub = None
