@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Path
-from rclpy.time import Time
+import math
 
 class AutoTeleopFromPose(Node):
     def __init__(self):
@@ -20,8 +20,9 @@ class AutoTeleopFromPose(Node):
         self.prev_y = 0.0
         self.prev_z = 0.0
 
-        self.linear_speed = 0.2
-        self.angular_speed = 1.0
+        self.linear_speed = 0.2  # Max linear speed
+        self.angular_speed = 1.0  # Max angular speed
+        self.max_distance = 2.0  # Maximum distance for scaling linear speed
 
         # Time of last processed callback
         self.last_processed_time = self.get_clock().now()
@@ -49,61 +50,59 @@ class AutoTeleopFromPose(Node):
             pos = pose_stamped.pose.position
             self.get_logger().info(f"Pose {i}: x={pos.x:.2f}, y={pos.y:.2f}, z={pos.z:.2f}")
 
-        # Use a pose that's not at the origin (e.g., the last one for now)
-        current_pose = msg.poses[-1].pose
+        # Use the last pose from the path
+        current_pose = msg.poses[10].pose
         x = current_pose.position.x
         y = current_pose.position.y
         z = current_pose.position.z
 
         self.get_logger().info(f"Selected pose: x={x:.2f}, y={y:.2f}, z={z:.2f}")
 
-
-        # Use the first pose in the path
-        #current_pose = msg.poses[0].pose
-
-        #x = current_pose.position.x
-        #y = current_pose.position.y
-        #z = current_pose.position.z
-
-        #self.get_logger().info(f"Received position: x={x:.2f}, y={y:.2f}, z={z:.2f}")
-
+        # Orientation
         ox = current_pose.orientation.x
         oy = current_pose.orientation.y
         oz = current_pose.orientation.z
         ow = current_pose.orientation.w
-
         self.get_logger().info(f"Orientation: x={ox:.2f}, y={oy:.2f}, z={oz:.2f}, w={ow:.2f}")
 
-        #if self.prev_x is None or self.prev_y is None or self.prev_z is None:
-            #self.prev_x = x
-            #self.prev_y = y
-            #self.prev_z = z
-            #return
+        goal_pose = msg.poses[0].pose
+        xg = goal_pose.position.x
+        yg = goal_pose.position.y
+        zg = goal_pose.position.z
 
-        dx = x - self.prev_x
-        dy = y - self.prev_y
-        dz = z - self.prev_z
+        # Calculate the difference in position
+        dx = x - xg
+        dy = y - yg
+        dz = z - zg
+      
 
-        self.prev_x = x
-        self.prev_y = y
-        self.prev_z = z
+        # Calculate the distance to the target pose
+        distance = math.sqrt(dx**2 + dy**2 + dz**2)
+        
+        # Scale the linear speed based on distance to target
+        scaled_linear_speed = self.linear_speed * min(distance / self.max_distance, 1.0)
 
-        threshold = 0.01
+        threshold = 0.01  # Movement threshold
         cmd = Twist()
 
+        # Adjust the linear velocity
         if abs(dx) > threshold:
-            cmd.linear.x = self.linear_speed if dx > 0 else -self.linear_speed
+            cmd.linear.x = scaled_linear_speed if dx > 0 else -scaled_linear_speed
         if abs(dy) > threshold:
-            cmd.linear.y = self.linear_speed if dy > 0 else -self.linear_speed
+            cmd.linear.y = scaled_linear_speed if dy > 0 else -scaled_linear_speed
         if abs(dz) > threshold:
-            cmd.linear.z = self.linear_speed if dz > 0 else -self.linear_speed
+            cmd.linear.z = scaled_linear_speed if dz > 0 else -scaled_linear_speed
+
+        # If the robot is close enough to the target, stop
+        if distance < 0.1:
+            cmd.linear.x = 0.0
+            cmd.linear.y = 0.0
+            cmd.linear.z = 0.0
 
         self.publisher_.publish(cmd)
         self.get_logger().info(
             f"Published cmd_vel: x={cmd.linear.x:.2f}, y={cmd.linear.y:.2f}, z={cmd.linear.z:.2f}"
         )
-
-
 
 def main(args=None):
     rclpy.init(args=args)
