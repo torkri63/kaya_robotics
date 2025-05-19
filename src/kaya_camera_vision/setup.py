@@ -24,9 +24,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'live_capture_node = cube_detection.live_capture_node:main',
-            'cube_detection_node = cube_detection.cube_detection_node:main',
-            'motion_planning_subscriber = cube_detection.motion_planning_subscriber:main',
+            'live_capture_node = kaya_camera_vision.live_capture_node:main',
+            'cube_detection_node = kaya_camera_vision.cube_detection_node:main',
+            'motion_planning_subscriber = kaya_camera_vision.motion_planning_subscriber:main',
         ],
     },
 )
